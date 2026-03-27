@@ -10,7 +10,10 @@ let f = Finding::builder("my-scanner", "https://example.com", Severity::High)
     .detail("User input reaches database query unsanitized")
     .cve("CVE-2024-12345")
     .tag("sqli")
-    .build();
+    .build()
+    .unwrap();
+
+assert_eq!(f.title, "SQL Injection");
 ```
 
 ## The Reportable trait
@@ -59,6 +62,22 @@ let ev = Evidence::HttpResponse {
     headers: vec![],
     body_excerpt: Some("SQL syntax error near".into()),
 };
+```
+
+## Serialization
+
+Serialize findings directly to JSON for pipelines or report sinks:
+
+```rust
+use secfinding::{Finding, Severity};
+
+let finding = Finding::builder("my-scanner", "https://example.com", Severity::Medium)
+    .title("Verbose error page")
+    .build()
+    .unwrap();
+
+let json = serde_json::to_string_pretty(&finding).unwrap();
+assert!(json.contains("\"title\": \"Verbose error page\""));
 ```
 
 ## Filtering

@@ -29,7 +29,8 @@
 //!     .tag("owasp-a03")
 //!     .cve("CVE-2024-12345")
 //!     .exploit_hint("sqlmap -u 'https://example.com/login' --data 'user=admin'")
-//!     .build();
+//!     .build()
+//!     .unwrap();
 //! ```
 
 #![warn(missing_docs)]
