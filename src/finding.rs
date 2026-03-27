@@ -127,13 +127,13 @@ impl Finding {
         let title = title.into();
 
         if scanner.is_empty() {
-            return Err("scanner cannot be empty");
+            return Err("scanner cannot be empty. Fix: pass the tool or scanner name that produced the finding.");
         }
         if target.is_empty() {
-            return Err("target cannot be empty");
+            return Err("target cannot be empty. Fix: pass the URL, host, file path, or asset identifier that was scanned.");
         }
         if title.is_empty() {
-            return Err("title cannot be empty");
+            return Err("title cannot be empty. Fix: provide a short finding summary such as `Exposed admin panel`.");
         }
 
         Ok(Self {
@@ -228,28 +228,29 @@ impl FindingBuilder {
     }
 
     /// Build the finding.
+    #[must_use]
     pub fn build(mut self) -> Result<Finding, &'static str> {
         if self.scanner.is_empty() {
-            return Err("scanner cannot be empty");
+            return Err("scanner cannot be empty. Fix: pass the tool or scanner name that produced the finding.");
         }
         if self.target.is_empty() {
-            return Err("target cannot be empty");
+            return Err("target cannot be empty. Fix: pass the URL, host, file path, or asset identifier that was scanned.");
         }
         let title = self.title.unwrap_or_default();
         if title.is_empty() {
-            return Err("title cannot be empty");
+            return Err("title cannot be empty. Fix: call `.title(...)` before building the finding.");
         }
 
         if let Some(conf) = self.confidence {
             if conf.is_nan() {
-                return Err("confidence cannot be NaN");
+                return Err("confidence cannot be NaN. Fix: use a finite confidence score between 0.0 and 1.0.");
             }
             self.confidence = Some(conf.clamp(0.0, 1.0));
         }
 
         for cve in &self.cve_ids {
             if !cve.starts_with("CVE-") || cve.len() > 30 || cve.len() < 8 {
-                return Err("invalid CVE format");
+                return Err("invalid CVE format. Fix: use values like `CVE-2024-12345`.");
             }
         }
 

@@ -82,7 +82,8 @@ impl TryFrom<&str> for Severity {
     type Error = &'static str;
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        Self::from_str_loose(s).ok_or("Invalid severity")
+        Self::from_str_loose(s)
+            .ok_or("invalid severity. Fix: use `info`, `low`, `medium`, `high`, or `critical`.")
     }
 }
 
@@ -90,7 +91,8 @@ impl TryFrom<String> for Severity {
     type Error = &'static str;
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
-        Self::from_str_loose(s.as_str()).ok_or("Invalid severity")
+        Self::from_str_loose(s.as_str())
+            .ok_or("invalid severity. Fix: use `info`, `low`, `medium`, `high`, or `critical`.")
     }
 }
 
@@ -104,7 +106,7 @@ impl TryFrom<u8> for Severity {
             2 => Ok(Self::Medium),
             3 => Ok(Self::High),
             4 => Ok(Self::Critical),
-            _ => Err("Invalid severity"),
+            _ => Err("invalid severity. Fix: use a numeric level between 0 and 4."),
         }
     }
 }

@@ -101,7 +101,9 @@ impl Evidence {
     /// Create an HTTP response evidence with just a status code.
     pub fn http_status(status: u16) -> Result<Self, &'static str> {
         if !(100..=599).contains(&status) {
-            return Err("HTTP status code must be between 100 and 599");
+            return Err(
+                "HTTP status code must be between 100 and 599. Fix: pass a valid RFC HTTP status code.",
+            );
         }
         Ok(Self::HttpResponse {
             status,
