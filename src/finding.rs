@@ -237,7 +237,9 @@ impl FindingBuilder {
         }
         let title = self.title.unwrap_or_default();
         if title.is_empty() {
-            return Err("title cannot be empty. Fix: call `.title(...)` before building the finding.");
+            return Err(
+                "title cannot be empty. Fix: call `.title(...)` before building the finding.",
+            );
         }
 
         if let Some(conf) = self.confidence {
@@ -494,7 +496,8 @@ impl PartialOrd for Finding {
 
 impl Ord for Finding {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.severity.cmp(&other.severity)
+        self.severity
+            .cmp(&other.severity)
             .then_with(|| self.scanner.cmp(&other.scanner))
             .then_with(|| self.target.cmp(&other.target))
             .then_with(|| self.title.cmp(&other.title))
