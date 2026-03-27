@@ -228,7 +228,6 @@ impl FindingBuilder {
     }
 
     /// Build the finding.
-    #[must_use]
     pub fn build(mut self) -> Result<Finding, &'static str> {
         if self.scanner.is_empty() {
             return Err("scanner cannot be empty. Fix: pass the tool or scanner name that produced the finding.");
