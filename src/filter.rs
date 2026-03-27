@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 use crate::{Finding, Severity};
 
 /// Configuration for filtering findings from scan output.
+///
+/// # Thread Safety
+/// `FindingFilter` is `Send` and `Sync`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FindingFilter {
     /// Minimum severity level (inclusive). Findings below this are removed.
@@ -25,8 +28,21 @@ impl FindingFilter {
     ///
     /// # Errors
     /// Returns an error if the TOML string is malformed or contains invalid values.
+    #[must_use]
     pub fn from_toml(toml: &str) -> Result<Self, String> {
         toml::from_str(toml).map_err(|e| format!("Failed to parse TOML filter config: {}", e))
+    }
+}
+
+impl std::fmt::Display for FindingFilter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "min_severity={:?}, exclude_scanners={}, include_tags={}",
+            self.min_severity,
+            self.exclude_scanners.join(","),
+            self.include_tags.join(",")
+        )
     }
 }
 

@@ -37,6 +37,10 @@ use crate::Severity;
 ///
 /// Only `scanner`, `target`, `severity`, and `title` are required.
 /// Everything else has sensible defaults.
+///
+/// # Thread Safety
+/// This trait does not impose `Send` or `Sync` bounds. Thread-safety depends on
+/// the concrete implementing type.
 pub trait Reportable {
     /// Which tool produced this finding.
     fn scanner(&self) -> &str;

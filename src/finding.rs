@@ -13,6 +13,9 @@ use crate::severity::Severity;
 /// This is the universal output format. Whether the finding comes from
 /// Gossan (discovery), Karyx (routing), Calyx (templates), Sear (SAST),
 /// jsdet (JS malware), or a binding (sqlmap-rs), it produces a `Finding`.
+///
+/// # Thread Safety
+/// `Finding` is `Send` and `Sync`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Finding {
     /// Unique identifier for this finding instance.
@@ -72,6 +75,9 @@ pub struct Finding {
 ///
 /// Required fields are set in [`Finding::builder`]. Optional fields
 /// are added via chained methods.
+///
+/// # Thread Safety
+/// `FindingBuilder` is `Send` and `Sync`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FindingBuilder {
     scanner: String,
@@ -115,6 +121,7 @@ impl Finding {
     }
 
     /// Quick constructor for simple findings without the builder.
+    #[must_use]
     pub fn new(
         scanner: impl Into<String>,
         target: impl Into<String>,
@@ -228,6 +235,7 @@ impl FindingBuilder {
     }
 
     /// Build the finding.
+    #[must_use]
     pub fn build(mut self) -> Result<Finding, &'static str> {
         if self.scanner.is_empty() {
             return Err("scanner cannot be empty. Fix: pass the tool or scanner name that produced the finding.");
@@ -280,22 +288,23 @@ impl FindingBuilder {
 
 impl std::fmt::Display for Finding {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let title = if self.title.is_empty() {
-            "(untitled)"
-        } else {
-            &self.title
-        };
-        let tags = if self.tags.is_empty() {
-            String::new()
-        } else {
-            format!(" [{}]", self.tags.join(", "))
-        };
-        let summary = format!("{title}{tags}");
-
         write!(
             f,
-            "[{}] {} -> {} ({}): {}",
-            self.severity, self.scanner, self.target, title, summary
+            "[{}] {} {} {}",
+            self.severity, self.kind, self.target, self.title
+        )
+    }
+}
+
+impl std::fmt::Display for FindingBuilder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "FindingBuilder(scanner={}, target={}, severity={}, title={})",
+            self.scanner,
+            self.target,
+            self.severity,
+            self.title.as_deref().unwrap_or("<unset>")
         )
     }
 }

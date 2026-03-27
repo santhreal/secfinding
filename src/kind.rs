@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// Extensible via `#[non_exhaustive]` — new variants can be added
 /// without breaking downstream consumers.
+///
+/// # Thread Safety
+/// `FindingKind` is `Send` and `Sync`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[non_exhaustive]

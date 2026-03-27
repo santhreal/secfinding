@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// Extensible via `#[non_exhaustive]` — new evidence types can be added
 /// for new tools (firmware, mobile, etc.) without breaking existing consumers.
+///
+/// # Thread Safety
+/// `Evidence` is `Send` and `Sync`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 #[non_exhaustive]
@@ -99,6 +102,7 @@ pub enum Evidence {
 
 impl Evidence {
     /// Create an HTTP response evidence with just a status code.
+    #[must_use]
     pub fn http_status(status: u16) -> Result<Self, &'static str> {
         if !(100..=599).contains(&status) {
             return Err(
@@ -127,6 +131,26 @@ impl Evidence {
             column,
             snippet: snippet.into(),
             language,
+        }
+    }
+}
+
+impl std::fmt::Display for Evidence {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::HttpResponse { status, .. } => write!(f, "http-response:{status}"),
+            Self::DnsRecord { record_type, value } => write!(f, "dns:{record_type}={value}"),
+            Self::Banner { raw } => write!(f, "banner:{raw}"),
+            Self::JsSnippet { url, line, .. } => write!(f, "js-snippet:{url}:{line}"),
+            Self::Certificate { subject, issuer, .. } => {
+                write!(f, "certificate:{subject} issued-by {issuer}")
+            }
+            Self::CodeSnippet { file, line, .. } => write!(f, "code-snippet:{file}:{line}"),
+            Self::HttpRequest { method, url, .. } => write!(f, "http-request:{method} {url}"),
+            Self::PatternMatch { pattern, matched } => {
+                write!(f, "pattern-match:{pattern} => {matched}")
+            }
+            Self::Raw(value) => write!(f, "raw:{value}"),
         }
     }
 }

@@ -6,8 +6,12 @@ use serde::{Deserialize, Serialize};
 ///
 /// Ordered from least to most severe. Supports comparison:
 /// `Severity::Critical > Severity::High` is true.
+///
+/// # Thread Safety
+/// `Severity` is `Send` and `Sync`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum Severity {
     /// Informational — no security impact, useful context.
     Info,
