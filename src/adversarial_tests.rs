@@ -177,7 +177,7 @@ fn finding_kind_serde_roundtrip() {
 
 #[test]
 fn filter_by_severity() {
-    let findings = vec![
+    let findings = [
         Finding::builder("s", "t", Severity::Info)
             .title("a")
             .build()
@@ -200,7 +200,7 @@ fn filter_by_severity() {
 
 #[test]
 fn filter_by_tag() {
-    let findings = vec![
+    let findings = [
         Finding::builder("s", "t", Severity::High)
             .title("a")
             .tag("sqli")
@@ -231,8 +231,8 @@ fn filter_by_tag() {
 fn many_findings_unique_ids() {
     let findings: Vec<Finding> = (0..1_000)
         .map(|i| {
-            Finding::builder("s", &format!("target-{i}"), Severity::Low)
-                .title(&format!("finding-{i}"))
+            Finding::builder("s", format!("target-{i}"), Severity::Low)
+                .title(format!("finding-{i}"))
                 .build()
                 .unwrap()
         })

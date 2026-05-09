@@ -28,7 +28,6 @@ impl FindingFilter {
     ///
     /// # Errors
     /// Returns an error if the TOML string is malformed or contains invalid values.
-    #[must_use]
     pub fn from_toml(toml: &str) -> Result<Self, String> {
         toml::from_str(toml).map_err(|e| format!("Failed to parse TOML filter config: {}", e))
     }

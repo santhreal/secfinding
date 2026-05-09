@@ -121,7 +121,6 @@ impl Finding {
     }
 
     /// Quick constructor for simple findings without the builder.
-    #[must_use]
     pub fn new(
         scanner: impl Into<String>,
         target: impl Into<String>,
@@ -235,7 +234,6 @@ impl FindingBuilder {
     }
 
     /// Build the finding.
-    #[must_use]
     pub fn build(mut self) -> Result<Finding, &'static str> {
         if self.scanner.is_empty() {
             return Err("scanner cannot be empty. Fix: pass the tool or scanner name that produced the finding.");
@@ -314,6 +312,25 @@ impl TryFrom<Finding> for serde_json::Value {
 
     fn try_from(finding: Finding) -> Result<Self, Self::Error> {
         serde_json::to_value(finding)
+    }
+}
+
+impl Eq for Finding {}
+
+impl PartialOrd for Finding {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Finding {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.severity
+            .cmp(&other.severity)
+            .then_with(|| self.scanner.cmp(&other.scanner))
+            .then_with(|| self.target.cmp(&other.target))
+            .then_with(|| self.title.cmp(&other.title))
+            .then_with(|| self.id.cmp(&other.id))
     }
 }
 
@@ -492,24 +509,5 @@ mod tests {
         assert_eq!(f.cve_ids[0], "CVE-2024-0001");
         assert_eq!(f.cve_ids[1], "CVE-2024-0002");
         assert_eq!(f.cve_ids[2], "CVE-2024-0003");
-    }
-}
-
-impl Eq for Finding {}
-
-impl PartialOrd for Finding {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Finding {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.severity
-            .cmp(&other.severity)
-            .then_with(|| self.scanner.cmp(&other.scanner))
-            .then_with(|| self.target.cmp(&other.target))
-            .then_with(|| self.title.cmp(&other.title))
-            .then_with(|| self.id.cmp(&other.id))
     }
 }

@@ -102,7 +102,6 @@ pub enum Evidence {
 
 impl Evidence {
     /// Create an HTTP response evidence with just a status code.
-    #[must_use]
     pub fn http_status(status: u16) -> Result<Self, &'static str> {
         if !(100..=599).contains(&status) {
             return Err(
@@ -142,7 +141,9 @@ impl std::fmt::Display for Evidence {
             Self::DnsRecord { record_type, value } => write!(f, "dns:{record_type}={value}"),
             Self::Banner { raw } => write!(f, "banner:{raw}"),
             Self::JsSnippet { url, line, .. } => write!(f, "js-snippet:{url}:{line}"),
-            Self::Certificate { subject, issuer, .. } => {
+            Self::Certificate {
+                subject, issuer, ..
+            } => {
                 write!(f, "certificate:{subject} issued-by {issuer}")
             }
             Self::CodeSnippet { file, line, .. } => write!(f, "code-snippet:{file}:{line}"),
