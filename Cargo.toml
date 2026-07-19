@@ -16,7 +16,7 @@ exclude = ["/target", ".idea", ".vscode", ".DS_Store", "*.swp", "*.profraw"]
 [features]
 default = []
 # Enables the in-tree secir bridge + bridge tests.
-secir = { version = "0.3.0", optional = true }
+secir = ["dep:secir"]
 # json-schema feature temporarily disabled pending proper chrono/uuid schema support
 # json-schema = ["dep:schemars"]
 
