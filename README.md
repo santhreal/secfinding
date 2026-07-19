@@ -1,5 +1,7 @@
 # secfinding
 
+Part of [Santh](https://santh.dev) - open source Rust security and infrastructure tooling. Follow [@SanthProject](https://x.com/SanthProject) on X.
+
 A typed security finding. Instead of passing around JSON blobs with maybe-there-maybe-not fields, you get a struct with a builder, proper severity levels, evidence types, and a trait that lets any scanner's output type plug into the reporting pipeline.
 
 ```rust
@@ -31,7 +33,7 @@ struct MyFinding {
 impl Reportable for MyFinding {
     fn scanner(&self) -> &str { "my-tool" }
     fn target(&self) -> &str { "target" }
-    fn severity(&self) -> Severity { Severity::from(self.sev) }
+    fn severity(&self) -> Severity { Severity::try_from(self.sev).unwrap() }
     fn title(&self) -> &str { &self.name }
 }
 ```
@@ -45,14 +47,24 @@ Five levels: Info, Low, Medium, High, Critical. Ordered, comparable, serializabl
 ```rust
 use secfinding::Severity;
 
-let s = Severity::from("high");    // from &str
-let s = Severity::from(3u8);       // from number (0=Info, 4=Critical)
-let s: Severity = "critical".into();
+let s = Severity::try_from("high").unwrap();    // from &str
+let s = Severity::try_from(3u8).unwrap();       // from number (0=Info, 4=Critical)
+let s: Severity = Severity::try_from("critical").unwrap();
 ```
 
 ## Evidence
 
-Typed proof attached to findings. HTTP responses, code snippets, DNS records, banners:
+Typed proof attached to findings: HTTP responses, code snippets, DNS records, banners, and scanner-specific structured variants (BOLA probes, login traces, source leaks, etc.).
+
+For unstructured or ad-hoc proof, use `Evidence::raw` (v0.4+):
+
+```rust
+use secfinding::Evidence;
+
+let ev = Evidence::raw("response excerpt: SQL syntax error near '1'");
+```
+
+Structured HTTP proof:
 
 ```rust
 use secfinding::Evidence;

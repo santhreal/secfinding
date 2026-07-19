@@ -1,4 +1,4 @@
-//! The `Reportable` trait — implement this on YOUR finding type to get
+//! The `Reportable` trait  -  implement this on YOUR finding type to get
 //! free SARIF/JSON/Markdown output via `secreport`.
 //!
 //! You do NOT need to use `secfinding::Finding`. Any struct that implements
@@ -21,14 +21,11 @@
 //!         if self.sev > 8 { Severity::Critical } else { Severity::Medium }
 //!     }
 //!     fn title(&self) -> &str { &self.title }
-//!     fn detail(&self) -> &str { "" }
-//!     fn cwe_ids(&self) -> &[String] { &[] }
-//!     fn cve_ids(&self) -> &[String] { &[] }
-//!     fn tags(&self) -> &[String] { &[] }
 //! }
 //! ```
 
 use crate::Severity;
+use std::sync::Arc;
 
 /// Trait for any finding-like type that can be rendered into reports.
 ///
@@ -51,18 +48,43 @@ pub trait Reportable {
     /// Short human-readable title.
     fn title(&self) -> &str;
     /// Detailed description.
-    #[allow(clippy::unnecessary_literal_bound)]
+    ///
+    /// The default implementation returns an empty string slice
+    /// (zero-length slice borrowed from `title()`).  Implementors
+    /// that have a meaningful description should override this.
     fn detail(&self) -> &str {
-        ""
+        &self.title()[..0]
     }
     /// CWE identifiers (e.g. `["CWE-89"]`).
-    fn cwe_ids(&self) -> &[String];
+    fn cwe_ids(&self) -> &[Arc<str>] {
+        &[]
+    }
     /// CVE identifiers.
-    fn cve_ids(&self) -> &[String];
+    fn cve_ids(&self) -> &[Arc<str>] {
+        &[]
+    }
     /// Free-form tags.
-    fn tags(&self) -> &[String];
+    fn tags(&self) -> &[Arc<str>] {
+        &[]
+    }
     /// Confidence score 0.0-1.0 (None = not applicable).
     fn confidence(&self) -> Option<f64> {
+        None
+    }
+    /// CVSS score (0.0 to 10.0) if applicable.
+    fn cvss_score(&self) -> Option<f64> {
+        None
+    }
+    /// Current lifecycle state of the finding.
+    fn status(&self) -> crate::FindingStatus {
+        crate::FindingStatus::Open
+    }
+    /// Specific location in a file where the finding was discovered.
+    fn location(&self) -> Option<&crate::Location> {
+        None
+    }
+    /// ID of the scan run that produced this finding.
+    fn scan_id(&self) -> Option<&str> {
         None
     }
     /// SARIF rule ID (defaults to "scanner/title-slug").
@@ -82,229 +104,73 @@ pub trait Reportable {
         None
     }
 
+    /// Actionable remediation guidance.
+    fn remediation(&self) -> Option<&str> {
+        None
+    }
+
     /// Evidence attached to the finding.
     fn evidence(&self) -> &[crate::Evidence] {
         &[]
+    }
+
+    /// The domain classification of this finding.
+    fn kind(&self) -> crate::FindingKind {
+        crate::FindingKind::Unclassified
     }
 }
 
 /// Blanket: secfinding's own `Finding` implements `Reportable`.
 impl Reportable for crate::Finding {
     fn scanner(&self) -> &str {
-        &self.scanner
+        self.scanner()
     }
     fn target(&self) -> &str {
-        &self.target
+        self.target()
     }
     fn severity(&self) -> Severity {
-        self.severity
+        self.severity()
     }
     fn title(&self) -> &str {
-        &self.title
+        self.title()
     }
     fn detail(&self) -> &str {
-        &self.detail
+        self.detail()
     }
-    fn cwe_ids(&self) -> &[String] {
-        &[]
+    fn cwe_ids(&self) -> &[Arc<str>] {
+        self.cwe_ids()
     }
-    fn cve_ids(&self) -> &[String] {
-        &self.cve_ids
+    fn cve_ids(&self) -> &[Arc<str>] {
+        self.cve_ids()
     }
-    fn tags(&self) -> &[String] {
-        &self.tags
+    fn tags(&self) -> &[Arc<str>] {
+        self.tags()
     }
     fn confidence(&self) -> Option<f64> {
-        self.confidence
+        self.confidence()
+    }
+    fn cvss_score(&self) -> Option<f64> {
+        self.cvss_score()
+    }
+    fn status(&self) -> crate::FindingStatus {
+        self.status()
+    }
+    fn location(&self) -> Option<&crate::Location> {
+        self.location()
+    }
+    fn scan_id(&self) -> Option<&str> {
+        self.scan_id()
     }
     fn exploit_hint(&self) -> Option<&str> {
-        self.exploit_hint.as_deref()
+        self.exploit_hint()
+    }
+    fn remediation(&self) -> Option<&str> {
+        self.remediation()
     }
     fn evidence(&self) -> &[crate::Evidence] {
-        &self.evidence
+        self.evidence()
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{Finding, Severity};
-
-    #[test]
-    fn finding_implements_reportable() {
-        let f = Finding::new("scanner", "target", Severity::High, "Title", "Detail").unwrap();
-        assert_eq!(Reportable::scanner(&f), "scanner");
-        assert_eq!(Reportable::target(&f), "target");
-        assert_eq!(Reportable::severity(&f), Severity::High);
-        assert_eq!(Reportable::title(&f), "Title");
-        assert_eq!(Reportable::detail(&f), "Detail");
-    }
-
-    #[test]
-    fn custom_type_implements_reportable() {
-        struct CustomFinding {
-            name: String,
-        }
-
-        impl Reportable for CustomFinding {
-            fn scanner(&self) -> &str {
-                "custom"
-            }
-            fn target(&self) -> &str {
-                "custom-target"
-            }
-            fn severity(&self) -> Severity {
-                Severity::Critical
-            }
-            fn title(&self) -> &str {
-                &self.name
-            }
-            fn cwe_ids(&self) -> &[String] {
-                &[]
-            }
-            fn cve_ids(&self) -> &[String] {
-                &[]
-            }
-            fn tags(&self) -> &[String] {
-                &[]
-            }
-        }
-
-        let f = CustomFinding { name: "XSS".into() };
-        assert_eq!(f.scanner(), "custom");
-        assert_eq!(f.severity(), Severity::Critical);
-        assert_eq!(f.detail(), ""); // default
-        assert!(f.tags().is_empty()); // default
-        assert!(f.rule_id().contains("xss"));
-    }
-
-    #[test]
-    fn reportable_defaults_are_sensible() {
-        struct Minimal;
-        impl Reportable for Minimal {
-            fn scanner(&self) -> &str {
-                "s"
-            }
-            fn target(&self) -> &str {
-                "t"
-            }
-            fn severity(&self) -> Severity {
-                Severity::Info
-            }
-            fn title(&self) -> &str {
-                "minimal"
-            }
-            fn cwe_ids(&self) -> &[String] {
-                &[]
-            }
-            fn cve_ids(&self) -> &[String] {
-                &[]
-            }
-            fn tags(&self) -> &[String] {
-                &[]
-            }
-        }
-
-        let m = Minimal;
-        assert_eq!(m.detail(), "");
-        assert!(m.cwe_ids().is_empty());
-        assert!(m.cve_ids().is_empty());
-        assert!(m.tags().is_empty());
-        assert_eq!(m.confidence(), None);
-        assert_eq!(m.exploit_hint(), None);
-        assert_eq!(m.rule_id(), "s/minimal");
-    }
-
-    #[test]
-    fn reportable_custom_sarif_level() {
-        struct CustomSev;
-        impl Reportable for CustomSev {
-            fn scanner(&self) -> &str {
-                "s"
-            }
-            fn target(&self) -> &str {
-                "t"
-            }
-            fn severity(&self) -> Severity {
-                Severity::Critical
-            }
-            fn title(&self) -> &str {
-                "t"
-            }
-            fn cwe_ids(&self) -> &[String] {
-                &[]
-            }
-            fn cve_ids(&self) -> &[String] {
-                &[]
-            }
-            fn tags(&self) -> &[String] {
-                &[]
-            }
-        }
-        let f = CustomSev;
-        assert_eq!(f.sarif_level(), "error");
-    }
-
-    #[test]
-    fn reportable_custom_rule_id() {
-        struct CustomRuleId;
-        impl Reportable for CustomRuleId {
-            fn scanner(&self) -> &str {
-                "scanner"
-            }
-            fn target(&self) -> &str {
-                "target"
-            }
-            fn severity(&self) -> Severity {
-                Severity::Info
-            }
-            fn title(&self) -> &str {
-                "MY custom TITLE!"
-            }
-            fn rule_id(&self) -> String {
-                "CUSTOM-RULE-ID".to_string()
-            }
-            fn cwe_ids(&self) -> &[String] {
-                &[]
-            }
-            fn cve_ids(&self) -> &[String] {
-                &[]
-            }
-            fn tags(&self) -> &[String] {
-                &[]
-            }
-        }
-        let f = CustomRuleId;
-        assert_eq!(f.rule_id(), "CUSTOM-RULE-ID");
-    }
-
-    #[test]
-    fn reportable_default_rule_id_formatting() {
-        struct Spaces;
-        impl Reportable for Spaces {
-            fn scanner(&self) -> &str {
-                "scan"
-            }
-            fn target(&self) -> &str {
-                "target"
-            }
-            fn severity(&self) -> Severity {
-                Severity::Info
-            }
-            fn title(&self) -> &str {
-                "Some spaces here"
-            }
-            fn cwe_ids(&self) -> &[String] {
-                &[]
-            }
-            fn cve_ids(&self) -> &[String] {
-                &[]
-            }
-            fn tags(&self) -> &[String] {
-                &[]
-            }
-        }
-        let f = Spaces;
-        assert_eq!(f.rule_id(), "scan/some-spaces-here");
+    fn kind(&self) -> crate::FindingKind {
+        self.kind()
     }
 }

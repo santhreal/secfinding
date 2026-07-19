@@ -9,7 +9,8 @@ fn main() {
         .title("Default Credentials")
         .detail("Admin interface uses admin:admin")
         .tag("auth")
-        .build();
+        .build()
+        .expect("Failed to build finding");
 
     let json = serde_json::to_string_pretty(&finding).expect("Failed to serialize");
     println!("Serialized Finding:\n{}", json);

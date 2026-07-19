@@ -1,4 +1,5 @@
 use secfinding::{Reportable, Severity};
+use std::sync::Arc;
 
 struct PolicyFinding {
     source: String,
@@ -39,15 +40,15 @@ impl Reportable for PolicyFinding {
         Some(self.score)
     }
 
-    fn tags(&self) -> &[String] {
+    fn tags(&self) -> &[Arc<str>] {
         &[]
     }
 
-    fn cwe_ids(&self) -> &[String] {
+    fn cwe_ids(&self) -> &[Arc<str>] {
         &[]
     }
 
-    fn cve_ids(&self) -> &[String] {
+    fn cve_ids(&self) -> &[Arc<str>] {
         &[]
     }
 }

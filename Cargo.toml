@@ -1,26 +1,38 @@
 [package]
 name = "secfinding"
-version = "0.2.0"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.85"
-license = "MIT"
-authors = ["Corum Collective LLC <engineering@corumcollective.com>"]
+license = "MIT OR Apache-2.0"
+authors = ["Santh Project <contact@santh.dev>"]
+homepage = "https://santh.dev"
 repository = "https://github.com/santhsecurity/secfinding"
-description = "Universal security finding types — Severity, Evidence, Finding, FindingKind"
+description = "Universal security finding types for vulnerability scanners."
 readme = "README.md"
-keywords = ["security", "findings", "vulnerability", "pentest"]
-categories = ["data-structures"]
+keywords = ["security", "findings", "vulnerability", "scanner"]
+categories = ["development-tools", "web-programming"]
 exclude = ["/target", ".idea", ".vscode", ".DS_Store", "*.swp", "*.profraw"]
 
 [features]
 default = []
+# Stub until secir publishes to crates.io; enables gated bridge tests in-tree.
+secir = []
+# `secir` bridge stays in-tree but is not exposed in the published
+# crate  -  secir itself is unpublished, and a published optional dep
+# requires a crates.io version. Re-enable once secir lands on
+# crates.io with its own audit.
 # json-schema feature temporarily disabled pending proper chrono/uuid schema support
 # json-schema = ["dep:schemars"]
 
 [dependencies]
+santh-error = { path = "../../general/santh-error" }
 chrono = { version = "0.4", features = ["serde"] }
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 toml = "0.8"
 uuid = { version = "1", features = ["v4", "serde"] }
+tracing = "0.1"
 # schemars = { version = "0.8", optional = true }
+
+[dev-dependencies]
+proptest = "1"
