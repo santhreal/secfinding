@@ -15,17 +15,14 @@ exclude = ["/target", ".idea", ".vscode", ".DS_Store", "*.swp", "*.profraw"]
 
 [features]
 default = []
-# Stub until secir publishes to crates.io; enables gated bridge tests in-tree.
-secir = []
-# `secir` bridge stays in-tree but is not exposed in the published
-# crate  -  secir itself is unpublished, and a published optional dep
-# requires a crates.io version. Re-enable once secir lands on
-# crates.io with its own audit.
+# Enables the in-tree secir bridge + bridge tests.
+secir = { version = "0.3.0", optional = true }
 # json-schema feature temporarily disabled pending proper chrono/uuid schema support
 # json-schema = ["dep:schemars"]
 
 [dependencies]
 santh-error = { version = "0.2.0" }
+secir = { version = "0.3.0", optional = true }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"

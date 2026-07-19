@@ -63,7 +63,7 @@ impl Severity {
 
     /// Short label for terminal output.
     #[must_use]
-    pub fn label(&self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Self::Info => "INFO",
             Self::Low => "LOW",
@@ -75,7 +75,7 @@ impl Severity {
 
     /// SARIF level string.
     #[must_use]
-    pub fn sarif_level(&self) -> &'static str {
+    pub fn sarif_level(self) -> &'static str {
         match self {
             Self::Critical | Self::High => "error",
             Self::Medium => "warning",

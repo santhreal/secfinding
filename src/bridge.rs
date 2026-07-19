@@ -105,12 +105,11 @@ pub fn to_universal(
 /// Map secir severity to secfinding severity.
 pub fn map_severity(ir: secir::Severity) -> UniversalSeverity {
     match ir {
-        secir::Severity::Info => UniversalSeverity::Info,
         secir::Severity::Low => UniversalSeverity::Low,
         secir::Severity::Medium => UniversalSeverity::Medium,
         secir::Severity::High => UniversalSeverity::High,
         secir::Severity::Critical => UniversalSeverity::Critical,
-        // secir::Severity is #[non_exhaustive]  -  future variants map to Info
+        // Info + #[non_exhaustive] future variants
         _ => UniversalSeverity::Info,
     }
 }
@@ -125,8 +124,7 @@ pub fn map_kind(ir: &secir::finding::FindingKind) -> FindingKind {
         secir::finding::FindingKind::DefaultCredentials => FindingKind::DefaultCredentials,
         secir::finding::FindingKind::InfoDisclosure => FindingKind::InfoDisclosure,
         secir::finding::FindingKind::FileDiscovery => FindingKind::FileDiscovery,
-        secir::finding::FindingKind::Other => FindingKind::Other,
-        // secir::FindingKind is #[non_exhaustive]  -  future variants map to Other
+        // Other + #[non_exhaustive] future variants
         _ => FindingKind::Other,
     }
 }

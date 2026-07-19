@@ -30,7 +30,7 @@ pub enum FindingStatus {
 impl FindingStatus {
     /// Short label for terminal output.
     #[must_use]
-    pub fn label(&self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Self::Open => "OPEN",
             Self::Confirmed => "CONF",

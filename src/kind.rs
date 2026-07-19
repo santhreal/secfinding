@@ -78,7 +78,7 @@ pub enum FindingKind {
 impl FindingKind {
     /// Whether this finding kind typically requires immediate attention.
     #[must_use]
-    pub fn is_actionable(&self) -> bool {
+    pub fn is_actionable(self) -> bool {
         matches!(
             self,
             Self::Vulnerability
@@ -94,14 +94,14 @@ impl FindingKind {
 
     /// Whether a kind has been explicitly set (not `Unclassified`).
     #[must_use]
-    pub fn is_classified(&self) -> bool {
+    pub fn is_classified(self) -> bool {
         !matches!(self, Self::Unclassified)
     }
 
     /// Whether findings of this kind should always escalate severity to
     /// at least `High` in triage pipelines.
     #[must_use]
-    pub fn requires_severity_bump(&self) -> bool {
+    pub fn requires_severity_bump(self) -> bool {
         matches!(
             self,
             Self::DefaultCredentials | Self::SecretLeak | Self::MaliciousCode | Self::AccessControl
@@ -113,7 +113,7 @@ impl FindingKind {
     /// Useful for dashboards that want to enforce severity floors
     /// based on finding classification.
     #[must_use]
-    pub fn severity_floor(&self) -> crate::Severity {
+    pub fn severity_floor(self) -> crate::Severity {
         match self {
             Self::MaliciousCode | Self::DefaultCredentials | Self::AccessControl => {
                 crate::Severity::High

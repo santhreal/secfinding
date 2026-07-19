@@ -61,14 +61,8 @@ mod reportable;
 mod severity;
 mod status;
 
-// Bridge from `secir::Finding` to `secfinding::Finding`. Gated with
-// `cfg(any())` (always-false) because secir isn't yet on crates.io
-// and declaring `secir = []` as a feature would emit a phantom
-// optional dep into Cargo.toml. The bridge module remains in the
-// tree for the in-tree tests; re-enable once secir publishes by
-// flipping this to `#[cfg(feature = "secir")]` and adding
-// `secir = { dep, optional = true }` + `secir = ["dep:secir"]`.
-#[cfg(any())]
+// Bridge from `secir::Finding` to `secfinding::Finding`.
+#[cfg(feature = "secir")]
 pub mod bridge;
 
 pub use evidence::{AccessOutcome, Confidence, DetectorOutcome, Evidence, RoleResponseSample};

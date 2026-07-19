@@ -29,7 +29,7 @@ impl Confidence {
 
     /// Raw f32 value.
     #[must_use]
-    pub fn value(&self) -> f32 {
+    pub fn value(self) -> f32 {
         self.0
     }
 }

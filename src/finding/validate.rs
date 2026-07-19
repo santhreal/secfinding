@@ -67,7 +67,8 @@ fn validate_string_content(value: &str, field: &'static str) -> Result<(), Findi
     if value.chars().any(|c| BIDI_CONTROLS.contains(&c)) {
         return Err(FindingBuildError::InvalidField {
             field,
-            reason: "cannot contain Unicode bidirectional control characters (text-spoofing vector)",
+            reason:
+                "cannot contain Unicode bidirectional control characters (text-spoofing vector)",
         });
     }
     Ok(())
