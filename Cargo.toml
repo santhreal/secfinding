@@ -1,15 +1,15 @@
 [package]
 name = "secfinding"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 authors = ["Santh Project <contact@santh.dev>"]
 homepage = "https://santh.dev"
-repository = "https://github.com/santhsecurity/secfinding"
+repository = "https://github.com/santhreal/secfinding"
 description = "Universal security finding types for vulnerability scanners."
 readme = "README.md"
-keywords = ["security", "findings", "vulnerability", "scanner"]
+keywords = ["security", "findings", "vulnerability", "scanner", "sarif"]
 categories = ["development-tools", "web-programming"]
 exclude = ["/target", ".idea", ".vscode", ".DS_Store", "*.swp", "*.profraw"]
 

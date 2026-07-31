@@ -94,7 +94,33 @@ impl FindingFilter {
     ///
     /// Returns an error if the TOML string is malformed or contains invalid values.
     pub fn from_toml(toml: &str) -> Result<Self, String> {
-        toml::from_str(toml).map_err(|e| format!("Failed to parse TOML filter config: {e}"))
+        let filter: Self =
+            toml::from_str(toml).map_err(|e| format!("Failed to parse TOML filter config: {e}"))?;
+        filter.validate()?;
+        Ok(filter)
+    }
+
+    /// Validate threshold fields.
+    ///
+    /// `min_confidence` must be finite and within `[0.0, 1.0]`. A NaN
+    /// threshold would silently disable the confidence gate (`conf < NaN` is
+    /// always false, so every finding with a confidence passes), and an
+    /// out-of-range threshold can only be a caller bug. Following the crate's
+    /// reject-don't-clamp rule for confidence values, invalid thresholds are
+    /// errors, not silently ignored.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error describing the invalid field.
+    pub fn validate(&self) -> Result<(), String> {
+        if let Some(min_conf) = self.min_confidence {
+            if !min_conf.is_finite() || !(0.0..=1.0).contains(&min_conf) {
+                return Err(format!(
+                    "min_confidence must be finite and within [0.0, 1.0], got {min_conf}. Fix: use a value between 0.0 and 1.0."
+                ));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -361,6 +387,29 @@ mod tests {
         assert_eq!(config.min_severity, None);
         assert!(config.exclude_scanners.is_empty());
         assert!(config.include_tags.is_empty());
+    }
+
+    /// Locks out the silent NaN confidence-gate defect: TOML accepts `nan`
+    /// and `inf` floats, and `conf < NaN` is always false, so a NaN
+    /// `min_confidence` previously passed every finding that had a confidence
+    /// score, silently disabling the security filter. `from_toml` must reject
+    /// non-finite and out-of-range thresholds.
+    #[test]
+    fn from_toml_rejects_invalid_min_confidence() {
+        for bad in ["min_confidence = nan", "min_confidence = inf", "min_confidence = -inf"] {
+            assert!(
+                FindingFilter::from_toml(bad).is_err(),
+                "must reject non-finite threshold: {bad}"
+            );
+        }
+        for bad in ["min_confidence = 1.5", "min_confidence = -0.1"] {
+            assert!(
+                FindingFilter::from_toml(bad).is_err(),
+                "must reject out-of-range threshold: {bad}"
+            );
+        }
+        assert!(FindingFilter::from_toml("min_confidence = 0.0").is_ok());
+        assert!(FindingFilter::from_toml("min_confidence = 1.0").is_ok());
     }
 
     #[test]

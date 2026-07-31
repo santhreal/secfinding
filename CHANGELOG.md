@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.1
+
+### Fixed
+- `FindingFilter::from_toml` now rejects non-finite (`nan`, `inf`) and out-of-range `min_confidence` thresholds. Previously a NaN threshold silently disabled the confidence gate (`conf < NaN` is always false), passing every finding with a confidence score.
+
+### Added
+- `FindingFilter::validate()` public method applying the same threshold validation to programmatically constructed filters.
+
 ## v0.4.0
 
 Published to [crates.io](https://crates.io/crates/secfinding). Additive extensions for the Santh unified-machine output.
