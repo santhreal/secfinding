@@ -262,3 +262,35 @@ fn display_output_contains_new_fields() {
     assert!(s.contains("[FIXD]"));
     assert!(s.contains("at lib.rs:42"));
 }
+#[test]
+fn merge_chain_preserves_location_status_scan_id_hints() {
+    let loc = Location::new("src/lib.rs").unwrap().line(10).unwrap();
+    let a = Finding::builder("s", "t", Severity::Low)
+        .title("Step 1")
+        .location(loc.clone())
+        .status(FindingStatus::Confirmed)
+        .scan_id("scan-123")
+        .exploit_hint("curl https://target/1")
+        .remediation("Update config A")
+        .build()
+        .unwrap();
+    let b = Finding::builder("s", "t", Severity::High)
+        .title("Step 2")
+        .exploit_hint("curl https://target/2")
+        .remediation("Update config B")
+        .build()
+        .unwrap();
+
+    let merged = Finding::merge_chain(&a, &b).unwrap();
+    assert_eq!(merged.location(), Some(&loc));
+    assert_eq!(merged.status(), FindingStatus::Confirmed);
+    assert_eq!(merged.scan_id(), Some("scan-123"));
+    assert_eq!(
+        merged.exploit_hint(),
+        Some("curl https://target/1\n---\ncurl https://target/2")
+    );
+    assert_eq!(
+        merged.remediation(),
+        Some("Update config A\n---\nUpdate config B")
+    );
+}

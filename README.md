@@ -1,6 +1,6 @@
 # secfinding
 
-Part of [Santh](https://santh.dev) - open source Rust security and infrastructure tooling. Follow [@SanthProject](https://x.com/SanthProject) on X.
+Part of [Santh](https://santh.dev) - open source Rust security and infrastructure tooling.
 
 A typed security finding. Instead of passing around JSON blobs with maybe-there-maybe-not fields, you get a struct with a builder, proper severity levels, evidence types, and a trait that lets any scanner's output type plug into the reporting pipeline.
 
@@ -15,7 +15,7 @@ let f = Finding::builder("my-scanner", "https://example.com", Severity::High)
     .build()
     .unwrap();
 
-assert_eq!(f.title, "SQL Injection");
+assert_eq!(f.title(), "SQL Injection");
 ```
 
 ## The Reportable trait
@@ -97,8 +97,9 @@ assert!(json.contains("\"title\": \"Verbose error page\""));
 Filter findings by severity, scanner, tags:
 
 ```rust
-use secfinding::{filter, FindingFilter};
+use secfinding::{filter, FindingFilter, Severity};
 
+# let findings = Vec::<secfinding::Finding>::new();
 let config = FindingFilter {
     min_severity: Some(Severity::Medium),
     ..Default::default()

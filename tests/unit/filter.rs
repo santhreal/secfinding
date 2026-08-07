@@ -173,3 +173,22 @@ fn parse_empty_toml_filter_config() {
     assert!(config.exclude_scanners.is_empty());
     assert!(config.include_tags.is_empty());
 }
+#[test]
+fn from_toml_rejects_invalid_severity_range() {
+    let toml_str = r#"
+        min_severity = "critical"
+        max_severity = "low"
+    "#;
+    let err = FindingFilter::from_toml(toml_str).unwrap_err();
+    assert!(err.contains("min_severity"), "Error was: {err}");
+}
+
+#[test]
+fn from_toml_rejects_invalid_date_range() {
+    let toml_str = r#"
+        start_date = "2026-08-10T00:00:00Z"
+        end_date = "2026-08-01T00:00:00Z"
+    "#;
+    let err = FindingFilter::from_toml(toml_str).unwrap_err();
+    assert!(err.contains("start_date"), "Error was: {err}");
+}

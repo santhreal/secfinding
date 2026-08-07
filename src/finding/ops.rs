@@ -90,11 +90,42 @@ impl Finding {
             (Some(x), None) | (None, Some(x)) => Some(x),
             (None, None) => None,
         };
+        let location = a.location.clone().or_else(|| b.location.clone());
+        let scan_id = a.scan_id.clone().or_else(|| b.scan_id.clone());
+        let status = if a.status != crate::FindingStatus::Open {
+            a.status
+        } else {
+            b.status
+        };
+        let exploit_hint = match (&a.exploit_hint, &b.exploit_hint) {
+            (Some(h1), Some(h2)) => Some(format!("{h1}\n---\n{h2}")),
+            (Some(h1), None) | (None, Some(h1)) => Some(h1.to_string()),
+            (None, None) => None,
+        };
+        let remediation = match (&a.remediation, &b.remediation) {
+            (Some(r1), Some(r2)) => Some(format!("{r1}\n---\n{r2}")),
+            (Some(r1), None) | (None, Some(r1)) => Some(r1.to_string()),
+            (None, None) => None,
+        };
 
         let mut builder = Finding::builder(a.scanner(), a.target(), severity)
             .title(format!("{} → {}", a.title(), b.title()))
             .detail(format!("{}\n---\n{}", a.detail(), b.detail()))
-            .kind(kind);
+            .kind(kind)
+            .status(status);
+
+        if let Some(loc) = location {
+            builder = builder.location(loc);
+        }
+        if let Some(sid) = scan_id {
+            builder = builder.scan_id(sid.as_ref());
+        }
+        if let Some(eh) = exploit_hint {
+            builder = builder.exploit_hint(eh);
+        }
+        if let Some(rem) = remediation {
+            builder = builder.remediation(rem);
+        }
 
         for ev in &evidence {
             builder = builder.evidence(ev.clone());

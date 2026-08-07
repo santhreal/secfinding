@@ -1,5 +1,15 @@
 # Changelog
 
+
+## [0.4.2] - 2026-08-07
+
+### Fixed
+- `FindingFilter::validate` (and `FindingFilter::from_toml`) now validates severity range (`min_severity <= max_severity`) and date range (`start_date <= end_date`), rejecting impossible or inverted filter configurations with an explicit error instead of silently passing zero findings.
+- `Finding::merge_chain` now preserves `location`, `status`, and `scan_id`, and concatenates `exploit_hint` and `remediation` when merging findings into a chain finding, closing a silent data-loss defect.
+
+### Maintenance
+- Updated `Cargo.toml` authors to `Santh <64453045+santhreal@users.noreply.github.com>`.
+- Added `package.metadata.santh.status = "beta"` metadata.
 ## v0.4.1
 
 ### Fixed

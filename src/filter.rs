@@ -120,6 +120,20 @@ impl FindingFilter {
                 ));
             }
         }
+        if let (Some(min), Some(max)) = (self.min_severity, self.max_severity) {
+            if min > max {
+                return Err(format!(
+                    "min_severity ({min}) cannot be greater than max_severity ({max}). Fix: set min_severity <= max_severity."
+                ));
+            }
+        }
+        if let (Some(start), Some(end)) = (self.start_date, self.end_date) {
+            if start > end {
+                return Err(format!(
+                    "start_date ({start}) cannot be after end_date ({end}). Fix: set start_date <= end_date."
+                ));
+            }
+        }
         Ok(())
     }
 }
