@@ -10,7 +10,7 @@ use std::sync::Arc;
 /// Confidence score in `[0.0, 1.0]`. Newtype around `f32` so the enclosing
 /// enums can derive `Hash` + `Eq` cleanly (raw f32 cannot due to NaN /
 /// signed-zero semantics).
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(transparent)]
 pub struct Confidence(f32);
 
@@ -31,6 +31,23 @@ impl Confidence {
     #[must_use]
     pub fn value(self) -> f32 {
         self.0
+    }
+}
+impl TryFrom<f32> for Confidence {
+    type Error = &'static str;
+
+    fn try_from(value: f32) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl<'de> Deserialize<'de> for Confidence {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let val = f32::deserialize(deserializer)?;
+        Self::new(val).map_err(serde::de::Error::custom)
     }
 }
 
@@ -65,7 +82,7 @@ impl std::fmt::Display for Confidence {
 ///
 /// # Thread Safety
 /// `Evidence` is `Send` and `Sync`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum Evidence {
@@ -404,6 +421,34 @@ impl Evidence {
             language: language.map(Arc::from),
         })
     }
+    /// Create a source leak evidence.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `line_start` is 0 or if `line_end < line_start`.
+    pub fn source_leak(
+        file: impl Into<Arc<str>>,
+        line_start: usize,
+        line_end: usize,
+        secret_kind: impl Into<Arc<str>>,
+        confidence: Confidence,
+        rotation_url_hint: Option<Arc<str>>,
+    ) -> Result<Self, &'static str> {
+        if line_start == 0 {
+            return Err("line_start values must be 1 or greater. Fix: pass a positive source line number.");
+        }
+        if line_end < line_start {
+            return Err("line_end cannot be smaller than line_start. Fix: set line_end >= line_start.");
+        }
+        Ok(Self::SourceLeak {
+            file: file.into(),
+            line_start,
+            line_end,
+            secret_kind: secret_kind.into(),
+            confidence,
+            rotation_url_hint,
+        })
+    }
 }
 
 fn deserialize_http_status<'de, D>(deserializer: D) -> Result<u16, D::Error>
@@ -430,6 +475,179 @@ where
         ));
     }
     Ok(value)
+}
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+enum RawEvidence {
+    HttpResponse {
+        #[serde(deserialize_with = "deserialize_http_status")]
+        status: u16,
+        headers: Vec<(Arc<str>, Arc<str>)>,
+        body_excerpt: Option<Arc<str>>,
+    },
+    DnsRecord {
+        record_type: Arc<str>,
+        value: Arc<str>,
+    },
+    Banner {
+        raw: Arc<str>,
+    },
+    JsSnippet {
+        url: Arc<str>,
+        #[serde(deserialize_with = "deserialize_positive_usize")]
+        line: usize,
+        snippet: Arc<str>,
+    },
+    Certificate {
+        subject: Arc<str>,
+        san: Vec<Arc<str>>,
+        issuer: Arc<str>,
+        expires: Arc<str>,
+    },
+    CodeSnippet {
+        file: Arc<str>,
+        #[serde(deserialize_with = "deserialize_positive_usize")]
+        line: usize,
+        #[serde(default, deserialize_with = "deserialize_optional_positive_usize")]
+        column: Option<usize>,
+        snippet: Arc<str>,
+        language: Option<Arc<str>>,
+    },
+    HttpRequest {
+        method: Arc<str>,
+        url: Arc<str>,
+        headers: Vec<(Arc<str>, Arc<str>)>,
+        body: Option<Arc<str>>,
+    },
+    PatternMatch {
+        pattern: Arc<str>,
+        matched: Arc<str>,
+    },
+    Raw {
+        value: Arc<str>,
+    },
+    AppMapReplay {
+        endpoint: Arc<str>,
+        per_role: Vec<RoleResponseSample>,
+        diff_summary: Arc<str>,
+    },
+    BolaProbe {
+        owner_role: Arc<str>,
+        prober_role: Arc<str>,
+        resource_kind: Arc<str>,
+        resource_id_token: Arc<str>,
+        access_outcome: AccessOutcome,
+        leaked_privacy_fields: Vec<Arc<str>>,
+    },
+    LoginFlowTrace {
+        steps: Vec<Arc<str>>,
+        captured_cookies_count: usize,
+        captured_headers_count: usize,
+        #[serde(deserialize_with = "deserialize_http_status")]
+        canary_response_status: u16,
+    },
+    StealthProbe {
+        profile_name: Arc<str>,
+        per_detector: Vec<DetectorOutcome>,
+        overall_undetected: bool,
+    },
+    CaptchaBypass {
+        vendor: Arc<str>,
+        challenge_type: Arc<str>,
+        time_to_solve_ms: u64,
+        retries: u32,
+        bypass_succeeded: bool,
+    },
+    WorkflowCrossStepWitness {
+        workflow_id: Arc<str>,
+        injection_step: Arc<str>,
+        observation_step: Arc<str>,
+        observation_role: Arc<str>,
+        payload_excerpt: Arc<str>,
+    },
+    DomExecution {
+        sink: Arc<str>,
+        source: Arc<str>,
+        executed: bool,
+        observed_marker: Arc<str>,
+    },
+    SourceLeak {
+        file: Arc<str>,
+        #[serde(deserialize_with = "deserialize_positive_usize")]
+        line_start: usize,
+        #[serde(deserialize_with = "deserialize_positive_usize")]
+        line_end: usize,
+        secret_kind: Arc<str>,
+        confidence: Confidence,
+        rotation_url_hint: Option<Arc<str>>,
+    },
+    RuntimeBehaviorTrace {
+        anomaly_kind: Arc<str>,
+        trace_excerpt: Arc<str>,
+        causally_related_events: Vec<Arc<str>>,
+    },
+    DetonationVerdict {
+        verdict: Arc<str>,
+        family: Option<Arc<str>>,
+        confidence: Confidence,
+        proof_excerpt: Arc<str>,
+    },
+    InvariantViolation {
+        invariant: Arc<str>,
+        violation_detail: Arc<str>,
+    },
+}
+
+impl<'de> Deserialize<'de> for Evidence {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw = RawEvidence::deserialize(deserializer)?;
+        match raw {
+            RawEvidence::SourceLeak {
+                file,
+                line_start,
+                line_end,
+                secret_kind,
+                confidence,
+                rotation_url_hint,
+            } => {
+                if line_end < line_start {
+                    return Err(serde::de::Error::custom(
+                        "line_end cannot be smaller than line_start. Fix: set line_end >= line_start.",
+                    ));
+                }
+                Ok(Evidence::SourceLeak {
+                    file,
+                    line_start,
+                    line_end,
+                    secret_kind,
+                    confidence,
+                    rotation_url_hint,
+                })
+            }
+            RawEvidence::HttpResponse { status, headers, body_excerpt } => Ok(Evidence::HttpResponse { status, headers, body_excerpt }),
+            RawEvidence::DnsRecord { record_type, value } => Ok(Evidence::DnsRecord { record_type, value }),
+            RawEvidence::Banner { raw } => Ok(Evidence::Banner { raw }),
+            RawEvidence::JsSnippet { url, line, snippet } => Ok(Evidence::JsSnippet { url, line, snippet }),
+            RawEvidence::Certificate { subject, san, issuer, expires } => Ok(Evidence::Certificate { subject, san, issuer, expires }),
+            RawEvidence::CodeSnippet { file, line, column, snippet, language } => Ok(Evidence::CodeSnippet { file, line, column, snippet, language }),
+            RawEvidence::HttpRequest { method, url, headers, body } => Ok(Evidence::HttpRequest { method, url, headers, body }),
+            RawEvidence::PatternMatch { pattern, matched } => Ok(Evidence::PatternMatch { pattern, matched }),
+            RawEvidence::Raw { value } => Ok(Evidence::Raw { value }),
+            RawEvidence::AppMapReplay { endpoint, per_role, diff_summary } => Ok(Evidence::AppMapReplay { endpoint, per_role, diff_summary }),
+            RawEvidence::BolaProbe { owner_role, prober_role, resource_kind, resource_id_token, access_outcome, leaked_privacy_fields } => Ok(Evidence::BolaProbe { owner_role, prober_role, resource_kind, resource_id_token, access_outcome, leaked_privacy_fields }),
+            RawEvidence::LoginFlowTrace { steps, captured_cookies_count, captured_headers_count, canary_response_status } => Ok(Evidence::LoginFlowTrace { steps, captured_cookies_count, captured_headers_count, canary_response_status }),
+            RawEvidence::StealthProbe { profile_name, per_detector, overall_undetected } => Ok(Evidence::StealthProbe { profile_name, per_detector, overall_undetected }),
+            RawEvidence::CaptchaBypass { vendor, challenge_type, time_to_solve_ms, retries, bypass_succeeded } => Ok(Evidence::CaptchaBypass { vendor, challenge_type, time_to_solve_ms, retries, bypass_succeeded }),
+            RawEvidence::WorkflowCrossStepWitness { workflow_id, injection_step, observation_step, observation_role, payload_excerpt } => Ok(Evidence::WorkflowCrossStepWitness { workflow_id, injection_step, observation_step, observation_role, payload_excerpt }),
+            RawEvidence::DomExecution { sink, source, executed, observed_marker } => Ok(Evidence::DomExecution { sink, source, executed, observed_marker }),
+            RawEvidence::RuntimeBehaviorTrace { anomaly_kind, trace_excerpt, causally_related_events } => Ok(Evidence::RuntimeBehaviorTrace { anomaly_kind, trace_excerpt, causally_related_events }),
+            RawEvidence::DetonationVerdict { verdict, family, confidence, proof_excerpt } => Ok(Evidence::DetonationVerdict { verdict, family, confidence, proof_excerpt }),
+            RawEvidence::InvariantViolation { invariant, violation_detail } => Ok(Evidence::InvariantViolation { invariant, violation_detail }),
+        }
+    }
 }
 
 fn deserialize_optional_positive_usize<'de, D>(deserializer: D) -> Result<Option<usize>, D::Error>

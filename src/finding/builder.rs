@@ -14,7 +14,7 @@ use super::error::FindingBuildError;
 use super::types::{redact_for_display, Finding, FindingConfig, FORMAT_VERSION};
 use super::validate::{
     validate_confidence, validate_cve, validate_cvss_score, validate_cwe, validate_detail,
-    validate_scanner, validate_target, validate_title,
+    validate_scanner, validate_string_content, validate_target, validate_title,
 };
 
 /// Builder for constructing findings with a fluent API.
@@ -226,6 +226,24 @@ impl FindingBuilder {
         }
         for cwe in &self.cwe_ids {
             validate_cwe(cwe)?;
+        }
+        for tag in &self.tags {
+            validate_string_content(tag, "tags")?;
+        }
+        for ref_url in &self.references {
+            validate_string_content(ref_url, "references")?;
+        }
+        for mv in &self.matched_values {
+            validate_string_content(mv, "matched_values")?;
+        }
+        if let Some(sid) = &self.scan_id {
+            validate_string_content(sid, "scan_id")?;
+        }
+        if let Some(eh) = &self.exploit_hint {
+            validate_string_content(eh, "exploit_hint")?;
+        }
+        if let Some(rem) = &self.remediation {
+            validate_string_content(rem, "remediation")?;
         }
 
         if self.evidence.len() > self.config.max_evidence_count {

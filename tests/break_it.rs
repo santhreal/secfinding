@@ -1,4 +1,4 @@
-use secfinding::{Evidence, Finding, FindingBuildError, Location, Severity};
+use secfinding::{Confidence, Evidence, Finding, FindingBuildError, FindingFilter, Location, Severity};
 use std::thread;
 
 // --- 1. Empty input / zero-length slices ---
@@ -291,6 +291,69 @@ fn test_location_absolute_path() {
     );
 }
 
+#[test]
+fn test_location_windows_drive_letter_traversal() {
+    assert!(Location::new("C:\\Windows\\System32\\cmd.exe").is_err());
+    assert!(Location::new("c:/boot.ini").is_err());
+    assert!(Location::new("d:..\\etc\\passwd").is_err());
+    assert!(Location::new("sub/c:/foo").is_err());
+}
+
+#[test]
+fn test_location_bidi_and_newline_rejection() {
+    assert!(Location::new("report_txt\u{202E}gpj.exe").is_err());
+    assert!(Location::new("foo\nbar.rs").is_err());
+    assert!(Location::new("foo\rbar.rs").is_err());
+}
+
+#[test]
+fn test_confidence_deserialization_rejects_out_of_range_and_nan() {
+    let json_high = r#"{"type":"source_leak","file":"src/main.rs","line_start":1,"line_end":5,"secret_kind":"key","confidence":1.5}"#;
+    assert!(serde_json::from_str::<Evidence>(json_high).is_err());
+
+    let json_neg = r#"{"type":"detonation_verdict","verdict":"malicious","confidence":-0.1,"proof_excerpt":"x"}"#;
+    assert!(serde_json::from_str::<Evidence>(json_neg).is_err());
+}
+
+#[test]
+fn test_source_leak_line_range_validation() {
+    let conf = Confidence::new(0.9).unwrap();
+    let err = Evidence::source_leak("file.rs", 50, 10, "secret", conf, None).unwrap_err();
+    assert!(err.contains("line_end cannot be smaller than line_start"));
+
+    let json_inverted = r#"{"type":"source_leak","file":"src/main.rs","line_start":50,"line_end":10,"secret_kind":"key","confidence":0.9}"#;
+    assert!(serde_json::from_str::<Evidence>(json_inverted).is_err());
+}
+
+#[test]
+fn test_finding_builder_rejects_bidi_and_null_in_optional_fields() {
+    let err_tag = Finding::builder("s", "t", Severity::Low)
+        .title("valid")
+        .tag("sec\0ret")
+        .build();
+    assert!(err_tag.is_err());
+
+    let err_ref = Finding::builder("s", "t", Severity::Low)
+        .title("valid")
+        .reference("http://example.com/\u{202E}evil.exe")
+        .build();
+    assert!(err_ref.is_err());
+
+    let err_hint = Finding::builder("s", "t", Severity::Low)
+        .title("valid")
+        .exploit_hint("curl\0exploit")
+        .build();
+    assert!(err_hint.is_err());
+}
+
+#[test]
+fn test_finding_filter_deserialization_validates_thresholds() {
+    let json_bad_conf = r#"{"min_confidence": -0.5}"#;
+    assert!(serde_json::from_str::<FindingFilter>(json_bad_conf).is_err());
+
+    let json_bad_sev = r#"{"min_severity": "high", "max_severity": "low"}"#;
+    assert!(serde_json::from_str::<FindingFilter>(json_bad_sev).is_err());
+}
 // --- 7. Unicode edge cases ---
 
 #[test]

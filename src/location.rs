@@ -155,6 +155,11 @@ impl std::fmt::Display for Location {
     }
 }
 
+const BIDI_CONTROLS: [char; 10] = [
+    '\u{202A}', '\u{202B}', '\u{202C}', '\u{202D}', '\u{202E}', '\u{2066}', '\u{2067}',
+    '\u{2068}', '\u{2069}', '\u{061C}',
+];
+
 fn validate_location_file(file: &str) -> Result<(), LocationError> {
     if file.is_empty() {
         return Err(LocationError::EmptyFilePath);
@@ -164,6 +169,11 @@ fn validate_location_file(file: &str) -> Result<(), LocationError> {
     }
     if file.contains('\0') {
         return Err(LocationError::NullByteInPath);
+    }
+    for ch in file.chars() {
+        if ch == '\n' || ch == '\r' || BIDI_CONTROLS.contains(&ch) {
+            return Err(LocationError::PathTraversal);
+        }
     }
 
     // Normalize Windows-style backslash separators to '/' before parsing.
@@ -176,6 +186,15 @@ fn validate_location_file(file: &str) -> Result<(), LocationError> {
     } else {
         file.to_owned()
     };
+
+    // Reject Windows drive prefixes (`C:`, `d:\`, etc.) regardless of host platform.
+    let normalized_bytes = normalized.as_bytes();
+    if normalized_bytes.len() >= 2
+        && normalized_bytes[0].is_ascii_alphabetic()
+        && normalized_bytes[1] == b':'
+    {
+        return Err(LocationError::PathTraversal);
+    }
 
     // Use the Path components API to detect ParentDir elements explicitly.
     // This avoids false positives caused by substrings like "ver..sion".
@@ -194,6 +213,14 @@ fn validate_location_file(file: &str) -> Result<(), LocationError> {
         // Also reject Windows prefixes (C:\) or other platform-specific absolute markers.
         if matches!(component, Component::Prefix(_)) {
             return Err(LocationError::PathTraversal);
+        }
+        if let Component::Normal(s) = component {
+            if let Some(str_val) = s.to_str() {
+                let bytes = str_val.as_bytes();
+                if bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' {
+                    return Err(LocationError::PathTraversal);
+                }
+            }
         }
     }
 

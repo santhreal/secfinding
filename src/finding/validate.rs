@@ -51,7 +51,7 @@ const BIDI_CONTROLS: [char; 10] = [
     '\u{061C}', // ARABIC LETTER MARK
 ];
 
-fn validate_string_content(value: &str, field: &'static str) -> Result<(), FindingBuildError> {
+pub(crate) fn validate_string_content(value: &str, field: &'static str) -> Result<(), FindingBuildError> {
     if value.contains('\0') {
         return Err(FindingBuildError::InvalidField {
             field,

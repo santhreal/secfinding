@@ -25,7 +25,7 @@ use crate::{Finding, FindingKind, Severity};
 ///
 /// # Thread Safety
 /// `FindingFilter` is `Send` and `Sync`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
 pub struct FindingFilter {
     /// Minimum severity level (inclusive). Findings below this are removed.
     #[serde(default)]
@@ -74,6 +74,58 @@ pub struct FindingFilter {
     /// End of date range (inclusive).
     #[serde(default)]
     pub end_date: Option<DateTime<Utc>>,
+}
+#[derive(Deserialize)]
+struct RawFindingFilter {
+    #[serde(default)]
+    min_severity: Option<Severity>,
+    #[serde(default)]
+    max_severity: Option<Severity>,
+    #[serde(default)]
+    include_scanners: Vec<Arc<str>>,
+    #[serde(default)]
+    exclude_scanners: Vec<Arc<str>>,
+    #[serde(default)]
+    include_tags: Vec<Arc<str>>,
+    #[serde(default)]
+    exclude_tags: Vec<Arc<str>>,
+    #[serde(default)]
+    tag_mode: TagMode,
+    #[serde(default)]
+    include_kinds: Vec<FindingKind>,
+    #[serde(default)]
+    exclude_kinds: Vec<FindingKind>,
+    #[serde(default)]
+    min_confidence: Option<f64>,
+    #[serde(default)]
+    start_date: Option<DateTime<Utc>>,
+    #[serde(default)]
+    end_date: Option<DateTime<Utc>>,
+}
+
+impl<'de> Deserialize<'de> for FindingFilter {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw = RawFindingFilter::deserialize(deserializer)?;
+        let filter = FindingFilter {
+            min_severity: raw.min_severity,
+            max_severity: raw.max_severity,
+            include_scanners: raw.include_scanners,
+            exclude_scanners: raw.exclude_scanners,
+            include_tags: raw.include_tags,
+            exclude_tags: raw.exclude_tags,
+            tag_mode: raw.tag_mode,
+            include_kinds: raw.include_kinds,
+            exclude_kinds: raw.exclude_kinds,
+            min_confidence: raw.min_confidence,
+            start_date: raw.start_date,
+            end_date: raw.end_date,
+        };
+        filter.validate().map_err(serde::de::Error::custom)?;
+        Ok(filter)
+    }
 }
 
 /// Mode for tag matching.

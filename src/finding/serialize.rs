@@ -14,7 +14,7 @@ use super::error::FindingBuildError;
 use super::types::{Finding, FindingConfig, FORMAT_VERSION};
 use super::validate::{
     validate_confidence, validate_cve, validate_cvss_score, validate_cwe, validate_detail,
-    validate_scanner, validate_target, validate_title,
+    validate_scanner, validate_string_content, validate_target, validate_title,
 };
 
 /// Default UUID generator for deserialization.
@@ -114,6 +114,24 @@ impl Finding {
         }
         for cwe in &raw.cwe_ids {
             validate_cwe(cwe)?;
+        }
+        for tag in &raw.tags {
+            validate_string_content(tag, "tags")?;
+        }
+        for ref_url in &raw.references {
+            validate_string_content(ref_url, "references")?;
+        }
+        for mv in &raw.matched_values {
+            validate_string_content(mv, "matched_values")?;
+        }
+        if let Some(sid) = &raw.scan_id {
+            validate_string_content(sid, "scan_id")?;
+        }
+        if let Some(eh) = &raw.exploit_hint {
+            validate_string_content(eh, "exploit_hint")?;
+        }
+        if let Some(rem) = &raw.remediation {
+            validate_string_content(rem, "remediation")?;
         }
 
         if raw.evidence.len() > config.max_evidence_count {

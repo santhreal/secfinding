@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [0.4.3] - 2026-08-07
+
+### Fixed
+- Enforced `Confidence` range `[0.0, 1.0]` and non-NaN check during `serde` deserialization, closing an unvalidated fail-open path.
+- Rejected Windows drive-letter paths (`C:\...`, `c:/...`, `d:..\...`) and Trojan Source Bidi control characters in `Location::new` and deserialization across all platforms.
+- Validated `Evidence::SourceLeak` line ranges (`line_end >= line_start`) during construction and deserialization.
+- Extended string content validation (`validate_string_content`) in `FindingBuilder::build()` and deserialization to optional fields (`tags`, `references`, `matched_values`, `scan_id`, `exploit_hint`, `remediation`), preventing null byte and Bidi control injection.
+- Enforced threshold validation (`FindingFilter::validate()`) during `FindingFilter` `serde` deserialization, preventing out-of-range confidence scores and invalid severity/date ranges.
+
 ## [0.4.2] - 2026-08-07
 
 ### Fixed
