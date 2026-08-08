@@ -24,8 +24,8 @@ secir = ["dep:secir"]
 # json-schema = ["dep:schemars"]
 
 [dependencies]
-santh-error = { version = "0.2.0" }
-secir = { version = "0.3.0", optional = true }
+santh-error = { version = "0.2.0", path = "../../general/santh-error" }
+secir = { version = "0.3.0", path = "../secir", optional = true }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
